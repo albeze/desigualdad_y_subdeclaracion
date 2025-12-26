@@ -1,7 +1,7 @@
 set more off
 clear all
 
-capture cd "/Users/alfonsoberriosz/Documents/Stata/Monografia"
+capture cd ""
 
 use "EPH_T3_2024", clear
 
@@ -26,12 +26,7 @@ egen ingreso_total      = total(pondih * ipcf)
 gen shrinc              = ingreso_acumulado / ingreso_total
 
 *for-loop para crear percentiles de ingreso
-/*
-forvalues i=1(1)100 {
- replace p_ipcf = `i' if share_poblacion > (`i'-1)/100 & ///
-	share_poblacion < `i'/100
-}
-*/
+
 forvalues i = 0(1)99    {
 	replace p_ipcf=`i'+1 if (poblacion_acumulada>pp_ipcf*`i' & poblacion_acumulada<=pp_ipcf*(`i'+1))
 	}
@@ -39,23 +34,17 @@ forvalues i = 0(1)99    {
 //version 16: table p_ipcf, c(max shrinc)
 	
 *for-loop para crear deciles de ingreso
-/*
-forvalues i=1(1)10{
-	replace d_ipcf = `i' if share_poblacion > (`i'-1)/10 & share_poblacion <= `i'/10
-}
-*/
 
 forvalues i = 0(1)9    {
 	replace d_ipcf=`i'+1 if (poblacion_acumulada>pd_ipcf*`i' & poblacion_acumulada<=pd_ipcf*(`i'+1))
 }
 
-/*table p_ipcf [w=pondih], stat(mean ipcf)
+table p_ipcf [w=pondih], stat(mean ipcf)
 table d_ipcf [w=pondih], stat(mean ipcf)
 
 * Ingreso acumulado para generar curva de Lorenz
 table p_ipcf [w=pondih], stat(max shrinc)
 table d_ipcf [w=pondih], stat(max shrinc)
-*/
 
 * Exportar resultados a Excel
 
@@ -97,35 +86,9 @@ foreach numb of numlist 02 32 25{
 	gini ipcf [w=pondih] if aglomerado ==`numb' & ipcf>0
 }
 
-
---
 ******************************************************************
 ******* Acumulación de ingresos en los cuantiles más ricos *******
 ******************************************************************
-
-/*
-* Elegí el valor de x (porcentaje más rico que querés analizar)
-local x = 0.01  // ejemplo: 0.1 para top 0.1%, 1 para top 1%, 5 para top 5%
-
-* Crear variable que marca el top x% más rico (de ingreso per cápita)
-gen top_x = share_poblacion >= (1 - `x'/100)
-
-* Calcular ingreso ponderado por hogar (ya existe)
-* gen ingreso_pond = ipcf * pondih   // ya creada arriba
-
-* Calcular ingreso total acumulado del top x%
-gen ingreso_top_x = ingreso_pond * top_x
-
-* Sumar ingreso del top x%
-egen ingreso_top_total = total(ingreso_top_x)
-
-* Calcular porcentaje del ingreso total que acumula ese grupo
-gen pct_ingreso_top_x = ingreso_top_total / ingreso_total
-
-* Mostrar el resultado
-display "El `x'% más rico acumula el " pct_ingreso_top_x[1]*100 "% del ingreso total."
-
-*OPCION 2*
 * Top 5%
 sum ingreso_pond if share_pob >= 0.95, meanonly
 scalar top5 = (r(sum)/ingreso_total)*100
@@ -151,7 +114,6 @@ display "0.01% más rico: " %6.2f top001 "%"
 */
 
 * For-loop para iterar sobre el x% más rico 
-* Creado de esta manera porque no se puede nombrar decimales (e.g. 0.1) como variable
 local lista "0_01 0_1 0_5 1 5 10"
 local valores "0.01 0.1 0.5 1 5 10"
 
@@ -239,8 +201,6 @@ gini ipcf_ajustado_p [w=pondih]
 * Programa para calcular Theil en Gasparini (2012)
 theil ipcf_ajustado_p [w=pondih] if ipcf_ajustado_p>0
 display "El theil ajustado del T3 2024 en Argentina es:" r(theil)
-
-
 
 *******************************************************************************
 ******* Acumulación de ingresos en los cuantiles más ricos (POSTAJUSTE) *******
